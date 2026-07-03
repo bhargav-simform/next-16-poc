@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "codebase-memory-mcp": {
+      "command": "/home/bhargav/.local/bin/codebase-memory-mcp"
+    }
+  }
+}
