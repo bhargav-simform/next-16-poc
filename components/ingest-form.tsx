@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { ingestRepositoryAction } from "@/actions/ingest-repository.action";
 import { AiInsights, ExplainIssueButton } from "@/components/ai-insights";
+import { RepoChat } from "@/components/repo-chat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { AnalysisReport } from "@/types/analysis.types";
@@ -54,6 +55,8 @@ export function IngestForm() {
           {state.analysis && (
             <AnalysisSection analysis={state.analysis} />
           )}
+
+          {state.qaIndexed && <RepoChat workspacePath={state.workspacePath} />}
         </div>
       )}
     </div>

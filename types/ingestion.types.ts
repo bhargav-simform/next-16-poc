@@ -24,6 +24,7 @@ export interface IngestionSuccess {
   workspacePath: string;
   data: RepositoryMetadata;
   analysis: AnalysisReport | null;
+  qaIndexed: boolean;
 }
 
 export interface IngestionError {

@@ -2,6 +2,7 @@
 
 import { analyzeRepository } from "@/services/analysis-orchestrator.service";
 import { cloneRepository, GitCloneError } from "@/services/git-clone.service";
+import { indexRepository } from "@/services/indexing-orchestrator.service";
 import { readRepositoryMetadata } from "@/services/repository-metadata.service";
 import {
   RepositoryValidationError,
@@ -45,7 +46,15 @@ export async function ingestRepositoryAction(
       analysis = null;
     }
 
-    return { status: "success", workspacePath, data, analysis };
+    let qaIndexed = false;
+    try {
+      await indexRepository(workspacePath);
+      qaIndexed = true;
+    } catch {
+      qaIndexed = false;
+    }
+
+    return { status: "success", workspacePath, data, analysis, qaIndexed };
   } catch (error) {
     await removeWorkspace(workspacePath);
     if (error instanceof GitCloneError) {

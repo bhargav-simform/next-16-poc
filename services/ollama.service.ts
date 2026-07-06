@@ -1,6 +1,7 @@
 import {
   OLLAMA_BASE_URL,
   OLLAMA_CONNECT_TIMEOUT_MS,
+  OLLAMA_EMBEDDING_MODEL,
   OLLAMA_MAX_RETRIES,
   OLLAMA_MODEL,
   OLLAMA_RETRY_BACKOFF_MS,
@@ -218,4 +219,80 @@ export function generateRecommendation(
   options?: OllamaStreamOptions,
 ): AsyncGenerator<string> {
   return callOllama(buildRecommendationPrompt(report), options);
+}
+
+export function answerFromContext(
+  prompt: string,
+  options?: OllamaStreamOptions,
+): AsyncGenerator<string> {
+  return callOllama(prompt, options);
+}
+
+interface OllamaEmbeddingResponse {
+  embedding?: number[];
+  error?: string;
+}
+
+export async function generateEmbedding(
+  text: string,
+  options?: OllamaStreamOptions,
+): Promise<number[]> {
+  const externalSignal = options?.signal;
+  let attempt = 0;
+
+  while (true) {
+    if (externalSignal?.aborted) {
+      throw new OllamaError("Request was cancelled.", "aborted");
+    }
+
+    const controller = new AbortController();
+    const onExternalAbort = () => controller.abort();
+    externalSignal?.addEventListener("abort", onExternalAbort);
+    const timeoutId = setTimeout(() => controller.abort(), OLLAMA_CONNECT_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(`${OLLAMA_BASE_URL}/api/embeddings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: OLLAMA_EMBEDDING_MODEL, prompt: text }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new OllamaError(
+            `Model '${OLLAMA_EMBEDDING_MODEL}' is not available. Run: ollama pull ${OLLAMA_EMBEDDING_MODEL}`,
+            "model-not-found",
+          );
+        }
+        throw new OllamaError(`Ollama returned HTTP ${response.status}`, "unknown");
+      }
+
+      const json = (await response.json()) as OllamaEmbeddingResponse;
+      if (!json.embedding) {
+        throw new OllamaError(json.error ?? "Ollama returned no embedding.", "unknown");
+      }
+      return json.embedding;
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      if (externalSignal?.aborted) {
+        throw new OllamaError("Request was cancelled.", "aborted");
+      }
+
+      if (error instanceof OllamaError && error.cause === "model-not-found") {
+        throw error;
+      }
+
+      attempt++;
+      if (attempt > OLLAMA_MAX_RETRIES) {
+        throw normalizeError(error, controller.signal.aborted);
+      }
+
+      await sleep(OLLAMA_RETRY_BACKOFF_MS[attempt - 1]);
+    } finally {
+      externalSignal?.removeEventListener("abort", onExternalAbort);
+    }
+  }
 }
