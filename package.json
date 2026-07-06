@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "ollama:pull": "ollama pull qwen2.5-coder:7b",
+    "ollama:start": "ollama serve",
+    "ollama:stop": "sudo systemctl stop ollama"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
