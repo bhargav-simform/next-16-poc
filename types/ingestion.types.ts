@@ -1,3 +1,5 @@
+import type { AnalysisReport } from "@/types/analysis.types";
+
 export interface RepositoryMetadata {
   owner: string;
   repo: string;
@@ -21,6 +23,7 @@ export interface IngestionSuccess {
   status: "success";
   workspacePath: string;
   data: RepositoryMetadata;
+  analysis: AnalysisReport | null;
 }
 
 export interface IngestionError {

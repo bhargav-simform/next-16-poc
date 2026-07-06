@@ -48,6 +48,22 @@ export function IngestForm() {
               {state.data.packageJson.dependencyCount} deps)
             </p>
           )}
+
+          {state.analysis && (
+            <div className="mt-2 border-t pt-2">
+              <p className="font-medium">
+                Score: {state.analysis.score}/100 · Framework: {state.analysis.framework ?? "Unknown"}
+              </p>
+              <ul className="list-disc pl-4 text-muted-foreground">
+                {state.analysis.issues.slice(0, 10).map((issue, index) => (
+                  <li key={index}>
+                    [{issue.severity}] {issue.message}
+                    {issue.file && ` (${issue.file})`}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 "use server";
 
+import { analyzeRepository } from "@/services/analysis-orchestrator.service";
 import { cloneRepository, GitCloneError } from "@/services/git-clone.service";
 import { readRepositoryMetadata } from "@/services/repository-metadata.service";
 import {
@@ -7,6 +8,7 @@ import {
   validateRepositoryUrl,
 } from "@/services/repository-validator.service";
 import { createWorkspace, removeWorkspace } from "@/services/workspace.service";
+import type { AnalysisReport } from "@/types/analysis.types";
 import type { IngestionActionState } from "@/types/ingestion.types";
 
 export async function ingestRepositoryAction(
@@ -35,7 +37,15 @@ export async function ingestRepositoryAction(
       validated.repo,
       validated.defaultBranch,
     );
-    return { status: "success", workspacePath, data };
+
+    let analysis: AnalysisReport | null = null;
+    try {
+      analysis = await analyzeRepository(workspacePath);
+    } catch {
+      analysis = null;
+    }
+
+    return { status: "success", workspacePath, data, analysis };
   } catch (error) {
     await removeWorkspace(workspacePath);
     if (error instanceof GitCloneError) {
