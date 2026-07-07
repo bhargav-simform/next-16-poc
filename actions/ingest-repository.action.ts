@@ -1,8 +1,10 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { analyzeRepository } from "@/services/analysis-orchestrator.service";
+import { upsertRepositoryReport } from "@/services/db.service";
 import { cloneRepository, GitCloneError } from "@/services/git-clone.service";
-import { indexRepository } from "@/services/indexing-orchestrator.service";
+import { deriveRepositoryId, indexRepository } from "@/services/indexing-orchestrator.service";
 import { readRepositoryMetadata } from "@/services/repository-metadata.service";
 import {
   RepositoryValidationError,
@@ -29,6 +31,7 @@ export async function ingestRepositoryAction(
   }
 
   const workspacePath = await createWorkspace();
+  let repositoryId: string | null = null;
 
   try {
     await cloneRepository(validated.cloneUrl, workspacePath);
@@ -46,15 +49,23 @@ export async function ingestRepositoryAction(
       analysis = null;
     }
 
-    let qaIndexed = false;
     try {
       await indexRepository(workspacePath);
-      qaIndexed = true;
     } catch {
-      qaIndexed = false;
+      // best-effort QA indexing; the dashboard doesn't gate on this succeeding
     }
 
-    return { status: "success", workspacePath, data, analysis, qaIndexed };
+    if (analysis) {
+      repositoryId = deriveRepositoryId(workspacePath);
+      // Next.js 16: persisted so the dashboard Server Component can read it after redirect / across refreshes
+      await upsertRepositoryReport({
+        repositoryId,
+        workspacePath,
+        owner: data.owner,
+        repo: data.repo,
+        report: analysis,
+      });
+    }
   } catch (error) {
     await removeWorkspace(workspacePath);
     if (error instanceof GitCloneError) {
@@ -62,4 +73,15 @@ export async function ingestRepositoryAction(
     }
     return { status: "error", message: "Unexpected error while ingesting the repository." };
   }
+
+  if (!repositoryId) {
+    return {
+      status: "error",
+      message: "Repository was cloned but analysis failed. Please try again.",
+    };
+  }
+
+  // Next.js 16: Server Action redirect — kept outside the try/catch above since redirect()
+  // throws internally (NEXT_REDIRECT) and must not be caught and swallowed as a generic error.
+  redirect(`/repo/${repositoryId}`);
 }

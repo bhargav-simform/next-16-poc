@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AnalysisReport, Issue } from "@/types/analysis.types";
 
+// Next.js 16: Streaming UI — reads the Route Handler's ReadableStream chunk-by-chunk
+// and hands each decoded piece to the caller for incremental rendering.
 async function streamAiResponse(
   url: string,
   body: unknown,
@@ -31,11 +34,13 @@ function StreamingAction({
   streamingLabel,
   url,
   body,
+  size = "default",
 }: {
   label: string;
   streamingLabel: string;
   url: string;
   body: unknown;
+  size?: "default" | "sm";
 }) {
   const [text, setText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -51,32 +56,46 @@ function StreamingAction({
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      <Button type="button" size="sm" variant="outline" onClick={run} disabled={isStreaming}>
+    <div className="flex flex-col gap-2">
+      <Button
+        type="button"
+        size={size === "sm" ? "sm" : "default"}
+        variant="outline"
+        onClick={run}
+        disabled={isStreaming}
+      >
         {isStreaming ? streamingLabel : label}
       </Button>
-      {text && <p className="whitespace-pre-wrap text-sm text-muted-foreground">{text}</p>}
+      {text && (
+        <div className="rounded-lg bg-muted/60 p-3 text-sm whitespace-pre-wrap text-foreground">
+          {text}
+        </div>
+      )}
     </div>
   );
 }
 
 export function AiInsights({ report }: { report: AnalysisReport }) {
   return (
-    <div className="mt-2 flex flex-col gap-3 border-t pt-2">
-      <p className="font-medium">AI Insights (local, via Ollama)</p>
-      <StreamingAction
-        label="AI Summary"
-        streamingLabel="Analyzing..."
-        url="/api/ai/analyze"
-        body={{ report }}
-      />
-      <StreamingAction
-        label="Recommendations"
-        streamingLabel="Generating..."
-        url="/api/ai/recommend"
-        body={{ report }}
-      />
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>AI insights</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        <StreamingAction
+          label="AI summary"
+          streamingLabel="Analyzing…"
+          url="/api/ai/analyze"
+          body={{ report }}
+        />
+        <StreamingAction
+          label="Recommendations"
+          streamingLabel="Generating…"
+          url="/api/ai/recommend"
+          body={{ report }}
+        />
+      </CardContent>
+    </Card>
   );
 }
 
@@ -84,9 +103,10 @@ export function ExplainIssueButton({ report, issue }: { report: AnalysisReport; 
   return (
     <StreamingAction
       label="Explain"
-      streamingLabel="Explaining..."
+      streamingLabel="Explaining…"
       url="/api/ai/explain"
       body={{ report, issue }}
+      size="sm"
     />
   );
 }

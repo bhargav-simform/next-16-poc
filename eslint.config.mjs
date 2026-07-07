@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Ingested repositories are cloned here at runtime; their source isn't ours to lint.
+    ".workspaces/**",
   ]),
 ]);
 

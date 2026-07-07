@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -35,6 +37,11 @@ export function RepoChat({ workspacePath }: { workspacePath: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const scrollAnchorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollAnchorRef.current?.scrollIntoView({ block: "end" });
+  }, [messages]);
 
   async function send() {
     const question = input.trim();
@@ -63,42 +70,50 @@ export function RepoChat({ workspacePath }: { workspacePath: string }) {
   }
 
   return (
-    <div className="mt-2 flex flex-col gap-3 border-t pt-2">
-      <p className="font-medium">Ask about this repository</p>
+    <Card>
+      <CardHeader>
+        <CardTitle>Ask about this repository</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {messages.length > 0 && (
+          <ScrollArea className="h-72 rounded-lg border border-border">
+            <div className="flex flex-col gap-3 p-3">
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={
+                    message.role === "user"
+                      ? "ml-auto max-w-[85%] rounded-lg rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground"
+                      : "mr-auto max-w-[85%] rounded-lg rounded-bl-sm bg-muted px-3 py-2 text-sm whitespace-pre-wrap text-foreground"
+                  }
+                >
+                  {message.content || (message.role === "assistant" && isStreaming ? "…" : "")}
+                </div>
+              ))}
+              <div ref={scrollAnchorRef} />
+            </div>
+          </ScrollArea>
+        )}
 
-      <div className="flex max-h-80 flex-col gap-2 overflow-y-auto">
-        {messages.map((message, index) => (
-          <p
-            key={index}
-            className={
-              message.role === "user"
-                ? "font-medium"
-                : "whitespace-pre-wrap text-muted-foreground"
-            }
-          >
-            {message.role === "user" ? "You: " : "AI: "}
-            {message.content}
-          </p>
-        ))}
-      </div>
-
-      <form
-        className="flex gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void send();
-        }}
-      >
-        <Input
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          placeholder="Ask a question about this repository..."
-          disabled={isStreaming}
-        />
-        <Button type="submit" size="sm" disabled={isStreaming}>
-          {isStreaming ? "Thinking..." : "Send"}
-        </Button>
-      </form>
-    </div>
+        <form
+          className="flex gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void send();
+          }}
+        >
+          <Input
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            placeholder="Ask a question about this repository…"
+            disabled={isStreaming}
+            className="h-10 flex-1"
+          />
+          <Button type="submit" disabled={isStreaming} className="h-10">
+            {isStreaming ? "Thinking…" : "Send"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

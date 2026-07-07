@@ -1,6 +1,9 @@
 import { analyze, OllamaError } from "@/services/ollama.service";
 import type { AnalysisReport } from "@/types/analysis.types";
 
+// Next.js 16: Streaming UI — Route Handler returns a ReadableStream, consumed via
+// fetch + reader in components/ai-insights.tsx (see streamAiResponse there). The 3 sibling
+// AI route handlers (explain/recommend/qa) all follow this same pattern.
 export const maxDuration = 120;
 
 export async function POST(request: Request) {

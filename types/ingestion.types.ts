@@ -1,5 +1,3 @@
-import type { AnalysisReport } from "@/types/analysis.types";
-
 export interface RepositoryMetadata {
   owner: string;
   repo: string;
@@ -19,14 +17,6 @@ export interface RepositoryMetadata {
   } | null;
 }
 
-export interface IngestionSuccess {
-  status: "success";
-  workspacePath: string;
-  data: RepositoryMetadata;
-  analysis: AnalysisReport | null;
-  qaIndexed: boolean;
-}
-
 export interface IngestionError {
   status: "error";
   message: string;
@@ -36,4 +26,4 @@ export interface IngestionIdle {
   status: "idle";
 }
 
-export type IngestionActionState = IngestionIdle | IngestionSuccess | IngestionError;
+export type IngestionActionState = IngestionIdle | IngestionError;
